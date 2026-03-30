@@ -2,14 +2,23 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
+import StripeProvider from "@/components/StripeProvider";
+import PaymentStep from "@/components/PaymentStep";
 
-type WaiverStep = "info" | "waiver" | "sign" | "done";
+type WaiverStep = "info" | "waiver" | "sign" | "pay" | "done";
+
+const STEPS: WaiverStep[] = ["info", "waiver", "sign", "pay"];
+const STEP_LABELS = ["Info", "Waiver", "Sign", "Pay"];
 
 export default function Waiver() {
   const [step, setStep] = useState<WaiverStep>("info");
   const [isMinor, setIsMinor] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSigned, setHasSigned] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [playerEmail, setPlayerEmail] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   function clearSignature() {
@@ -59,8 +68,37 @@ export default function Waiver() {
     setIsDrawing(false);
   }
 
-  function handleSubmitWaiver() {
-    setStep("done");
+  async function handleGoToPay() {
+    setPaymentLoading(true);
+    try {
+      const res = await fetch("/api/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerName,
+          email: playerEmail,
+          amount: 1000, // $10.00
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setClientSecret(data.clientSecret);
+      setStep("pay");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to start payment. Please try again.");
+    } finally {
+      setPaymentLoading(false);
+    }
+  }
+
+  function resetFlow() {
+    setStep("info");
+    setHasSigned(false);
+    setIsMinor(false);
+    setClientSecret(null);
+    setPlayerName("");
+    setPlayerEmail("");
+    clearSignature();
   }
 
   // Completed screen
@@ -72,17 +110,12 @@ export default function Waiver() {
           <h1 className="font-[family-name:var(--font-playfair)] text-4xl sm:text-5xl font-black text-white mb-4">
             You&apos;re In!
           </h1>
-          <p className="text-gold text-xl font-semibold mb-2">Waiver signed successfully.</p>
+          <p className="text-gold text-xl font-semibold mb-2">Payment confirmed. Waiver signed.</p>
           <p className="text-white/50 text-base mb-8">
             Grab a football and get ready to throw. The pins are waiting.
           </p>
           <button
-            onClick={() => {
-              setStep("info");
-              setHasSigned(false);
-              setIsMinor(false);
-              clearSignature();
-            }}
+            onClick={resetFlow}
             className="px-10 py-5 bg-gradient-to-r from-gold to-gold-dark text-dark font-bold rounded-2xl text-xl"
           >
             Next Player
@@ -92,25 +125,30 @@ export default function Waiver() {
     );
   }
 
+  const currentStepIndex = STEPS.indexOf(step);
+
   return (
     <div className="min-h-[calc(100dvh-4rem)] sm:min-h-[calc(100dvh-5rem)] flex flex-col">
       {/* Progress bar */}
       <div className="bg-dark px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
-          {(["info", "waiver", "sign"] as WaiverStep[]).map((s, i) => (
+          {STEPS.map((s, i) => (
             <div key={s} className="flex items-center gap-2 flex-1">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                  step === s
-                    ? "bg-gold text-dark"
-                    : (["info", "waiver", "sign"].indexOf(step) > i)
-                      ? "bg-green-500 text-white"
-                      : "bg-white/10 text-white/40"
-                }`}
-              >
-                {["info", "waiver", "sign"].indexOf(step) > i ? "✓" : i + 1}
+              <div className="flex flex-col items-center gap-1">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                    step === s
+                      ? "bg-gold text-dark"
+                      : currentStepIndex > i
+                        ? "bg-green-500 text-white"
+                        : "bg-white/10 text-white/40"
+                  }`}
+                >
+                  {currentStepIndex > i ? "✓" : i + 1}
+                </div>
+                <span className="text-[10px] text-white/40 hidden sm:block">{STEP_LABELS[i]}</span>
               </div>
-              {i < 2 && <div className="flex-1 h-0.5 bg-white/10 rounded" />}
+              {i < STEPS.length - 1 && <div className="flex-1 h-0.5 bg-white/10 rounded" />}
             </div>
           ))}
         </div>
@@ -139,6 +177,11 @@ export default function Waiver() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  const form = e.currentTarget;
+                  const nameInput = form.querySelector<HTMLInputElement>("#w-name");
+                  const emailInput = form.querySelector<HTMLInputElement>("#w-email");
+                  if (nameInput) setPlayerName(nameInput.value);
+                  if (emailInput) setPlayerEmail(emailInput.value);
                   setStep("waiver");
                 }}
                 className="space-y-4"
@@ -150,6 +193,7 @@ export default function Waiver() {
                       id="w-name"
                       type="text"
                       required
+                      defaultValue={playerName}
                       className="w-full px-4 py-4 rounded-xl border border-gray-200 bg-white text-dark text-base focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
                       placeholder="Your full name"
                     />
@@ -171,6 +215,7 @@ export default function Waiver() {
                       id="w-email"
                       type="email"
                       required
+                      defaultValue={playerEmail}
                       className="w-full px-4 py-4 rounded-xl border border-gray-200 bg-white text-dark text-base focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
                       placeholder="you@email.com"
                     />
@@ -188,21 +233,19 @@ export default function Waiver() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="w-ec-name" className="text-dark text-sm font-medium block mb-1">Emergency Contact</label>
+                    <label htmlFor="w-ec-name" className="text-dark text-sm font-medium block mb-1">Emergency Contact <span className="text-text-light font-normal">(optional)</span></label>
                     <input
                       id="w-ec-name"
                       type="text"
-                      required
                       className="w-full px-4 py-4 rounded-xl border border-gray-200 bg-white text-dark text-base focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
                       placeholder="Contact name"
                     />
                   </div>
                   <div>
-                    <label htmlFor="w-ec-phone" className="text-dark text-sm font-medium block mb-1">Emergency Phone</label>
+                    <label htmlFor="w-ec-phone" className="text-dark text-sm font-medium block mb-1">Emergency Phone <span className="text-text-light font-normal">(optional)</span></label>
                     <input
                       id="w-ec-phone"
                       type="tel"
-                      required
                       className="w-full px-4 py-4 rounded-xl border border-gray-200 bg-white text-dark text-base focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
                       placeholder="(512) 555-0000"
                     />
@@ -254,7 +297,7 @@ export default function Waiver() {
                   type="submit"
                   className="w-full py-5 bg-gradient-to-r from-gold to-gold-dark text-dark font-bold rounded-xl text-xl"
                 >
-                  Continue →
+                  Continue &rarr;
                 </button>
               </form>
             </div>
@@ -312,7 +355,7 @@ export default function Waiver() {
                   onClick={() => setStep("info")}
                   className="px-6 py-4 border-2 border-gray-200 text-text-muted font-bold rounded-xl text-base"
                 >
-                  ← Back
+                  &larr; Back
                 </button>
                 <button
                   onClick={() => setStep("sign")}
@@ -361,26 +404,40 @@ export default function Waiver() {
                   onClick={() => setStep("waiver")}
                   className="px-6 py-3 border border-gray-200 text-text-muted font-medium rounded-xl text-sm"
                 >
-                  ← Back
+                  &larr; Back
                 </button>
               </div>
 
               <button
-                onClick={handleSubmitWaiver}
-                disabled={!hasSigned}
+                onClick={handleGoToPay}
+                disabled={!hasSigned || paymentLoading}
                 className={`w-full py-5 font-bold rounded-xl text-xl transition-all ${
-                  hasSigned
+                  hasSigned && !paymentLoading
                     ? "bg-gradient-to-r from-gold to-gold-dark text-dark"
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
               >
-                {hasSigned ? "Submit Waiver ✓" : "Sign above to continue"}
+                {paymentLoading
+                  ? "Setting up payment..."
+                  : hasSigned
+                    ? "Continue to Payment →"
+                    : "Sign above to continue"}
               </button>
 
               <p className="text-center text-text-light text-xs mt-3">
                 By signing, you confirm you have read and agree to the full waiver above.
               </p>
             </div>
+          )}
+
+          {/* STEP 4: Payment */}
+          {step === "pay" && clientSecret && (
+            <StripeProvider clientSecret={clientSecret}>
+              <PaymentStep
+                onSuccess={() => setStep("done")}
+                onBack={() => setStep("sign")}
+              />
+            </StripeProvider>
           )}
         </div>
       </div>

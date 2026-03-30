@@ -1,394 +1,344 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 
 export default function HeroBanner() {
   const [throwState, setThrowState] = useState<"ready" | "throwing" | "hit" | "miss">("ready");
   const [cycle, setCycle] = useState(0);
+  const [pinSeeds, setPinSeeds] = useState<number[]>([]);
+
+  // Generate random seeds for pin scatter directions each cycle
+  useEffect(() => {
+    setPinSeeds(Array.from({ length: 10 }, () => Math.random()));
+  }, [cycle]);
+
+  const startCycle = useCallback(() => {
+    setThrowState("ready");
+
+    const t1 = setTimeout(() => setThrowState("throwing"), 1400);
+    const t2 = setTimeout(() => {
+      setThrowState(Math.random() > 0.4 ? "hit" : "miss"); // 60% strikes
+    }, 2600);
+    const t3 = setTimeout(() => setCycle((c) => c + 1), 4800);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
 
   useEffect(() => {
-    const sequence = () => {
-      setThrowState("ready");
-
-      const throwTimer = setTimeout(() => {
-        setThrowState("throwing");
-      }, 1200);
-
-      const resultTimer = setTimeout(() => {
-        // 70% strikes, 30% misses
-        const isHit = Math.random() > 0.3;
-        setThrowState(isHit ? "hit" : "miss");
-      }, 2400);
-
-      const resetTimer = setTimeout(() => {
-        setCycle((c) => c + 1);
-      }, 4200);
-
-      return () => {
-        clearTimeout(throwTimer);
-        clearTimeout(resultTimer);
-        clearTimeout(resetTimer);
-      };
-    };
-
-    const cleanup = sequence();
+    const cleanup = startCycle();
     return cleanup;
-  }, [cycle]);
+  }, [cycle, startCycle]);
 
   return (
     <div className="hero-banner">
-      {/* Wolf */}
-      <div className={`wolf ${throwState === "throwing" ? "wolf-throw" : ""}`}>
-        <div className="wolf-body">
-          {/* Wolf head */}
-          <svg viewBox="0 0 120 120" className="wolf-svg">
-            {/* Ears */}
-            <polygon points="25,35 35,5 48,30" fill="#C4A265" />
-            <polygon points="72,30 85,5 95,35" fill="#C4A265" />
-            <polygon points="30,33 38,12 46,30" fill="#1B2D45" />
-            <polygon points="74,30 82,12 90,33" fill="#1B2D45" />
-            {/* Head */}
-            <ellipse cx="60" cy="55" rx="38" ry="35" fill="#C4A265" />
-            {/* Face darker */}
-            <ellipse cx="60" cy="58" rx="30" ry="28" fill="#a8863e" />
-            {/* Eyes */}
-            <ellipse cx="45" cy="48" rx="6" ry="7" fill="#fff" />
-            <ellipse cx="75" cy="48" rx="6" ry="7" fill="#fff" />
-            <circle cx="46" cy="47" r="3.5" fill="#0D1B2A" />
-            <circle cx="76" cy="47" r="3.5" fill="#0D1B2A" />
-            <circle cx="47" cy="46" r="1.2" fill="#fff" />
-            <circle cx="77" cy="46" r="1.2" fill="#fff" />
-            {/* Sunglasses */}
-            <rect x="33" y="41" width="22" height="14" rx="4" fill="#0D1B2A" opacity="0.85" />
-            <rect x="65" y="41" width="22" height="14" rx="4" fill="#0D1B2A" opacity="0.85" />
-            <line x1="55" y1="48" x2="65" y2="48" stroke="#0D1B2A" strokeWidth="2" />
-            {/* Orange lens reflection */}
-            <rect x="36" y="43" width="8" height="4" rx="2" fill="#E8740C" opacity="0.6" />
-            <rect x="68" y="43" width="8" height="4" rx="2" fill="#E8740C" opacity="0.6" />
-            {/* Snout */}
-            <ellipse cx="60" cy="68" rx="14" ry="10" fill="#e8c49a" />
-            <ellipse cx="60" cy="64" rx="6" ry="4" fill="#1A1A1A" />
-            {/* Mouth / grin */}
-            <path d="M 48 72 Q 54 80 60 72 Q 66 80 72 72" stroke="#1A1A1A" strokeWidth="1.5" fill="none" />
-            {/* Mane / fluff */}
-            <ellipse cx="28" cy="60" rx="10" ry="18" fill="#C4A265" opacity="0.6" />
-            <ellipse cx="92" cy="60" rx="10" ry="18" fill="#C4A265" opacity="0.6" />
-          </svg>
-          {/* Wolf arm — throwing motion */}
-          <div className={`wolf-arm ${throwState === "throwing" ? "arm-throw" : "arm-ready"}`}>
-            <svg viewBox="0 0 60 20" className="arm-svg">
-              <path d="M 0 10 Q 20 2 40 8 Q 50 10 58 6" stroke="#a8863e" strokeWidth="6" fill="none" strokeLinecap="round" />
-              {/* Paw */}
-              <circle cx="56" cy="6" r="5" fill="#C4A265" />
-            </svg>
-          </div>
-        </div>
+      {/* Wolf mascot — real image */}
+      <div className="wolf-container">
+        <Image
+          src="/wolf-mascot-scene.png"
+          alt="The Big Folwing Wolf"
+          width={280}
+          height={280}
+          className={`wolf-img ${throwState === "throwing" ? "wolf-throwing" : ""}`}
+          priority
+        />
       </div>
 
       {/* Football */}
-      <div className={`football ${throwState === "throwing" ? "football-fly" : ""} ${throwState === "hit" ? "football-hit" : ""} ${throwState === "miss" ? "football-miss" : ""} ${throwState === "ready" ? "football-ready" : ""}`}>
-        <svg viewBox="0 0 40 24" className="football-svg">
-          <ellipse cx="20" cy="12" rx="18" ry="10" fill="#8B4513" />
-          <ellipse cx="20" cy="12" rx="16" ry="9" fill="#A0522D" />
-          <line x1="20" y1="3" x2="20" y2="21" stroke="#fff" strokeWidth="1.2" />
-          <path d="M 14 6 L 16 8 M 14 10 L 16 12 M 14 14 L 16 16" stroke="#fff" strokeWidth="0.8" />
-          <path d="M 24 6 L 26 8 M 24 10 L 26 12 M 24 14 L 26 16" stroke="#fff" strokeWidth="0.8" />
+      <div className={`fb fb-${throwState}`}>
+        <svg viewBox="0 0 44 28" className="fb-svg">
+          <ellipse cx="22" cy="14" rx="20" ry="12" fill="#6B3410" />
+          <ellipse cx="22" cy="14" rx="18" ry="11" fill="#8B4513" />
+          <ellipse cx="22" cy="13" rx="16" ry="9" fill="#A0522D" />
+          <line x1="22" y1="4" x2="22" y2="24" stroke="#fff" strokeWidth="1.5" />
+          <path d="M 16 7 L 18 9.5 M 16 11 L 18 13.5 M 16 15 L 18 17.5" stroke="#fff" strokeWidth="1" strokeLinecap="round" />
+          <path d="M 26 7 L 28 9.5 M 26 11 L 28 13.5 M 26 15 L 28 17.5" stroke="#fff" strokeWidth="1" strokeLinecap="round" />
         </svg>
       </div>
 
       {/* Pins */}
-      <div className="pins-group">
+      <div className="pins-area">
         {[...Array(10)].map((_, i) => {
           const row = i < 1 ? 0 : i < 3 ? 1 : i < 6 ? 2 : 3;
           const col = i < 1 ? 0 : i < 3 ? i - 1 : i < 6 ? i - 3 : i - 6;
           const rowWidth = row === 0 ? 1 : row === 1 ? 2 : row === 2 ? 3 : 4;
-          const x = (col - (rowWidth - 1) / 2) * 28;
-          const y = row * 22 - 30;
+          const xOff = (col - (rowWidth - 1) / 2) * 30;
+          const yOff = row * 24 - 36;
 
-          // Randomize which pins get hit
-          const hitDelay = Math.random() * 0.3;
-          const hitAngle = (Math.random() - 0.5) * 120;
-          const hitDistance = 10 + Math.random() * 30;
+          const seed = pinSeeds[i] ?? 0.5;
+          const angle = (seed - 0.5) * 140;
+          const dx = (seed > 0.5 ? 1 : -1) * (15 + seed * 35);
+          const dy = -(25 + seed * 45);
+          const delay = seed * 0.25;
 
           return (
             <div
-              key={i}
-              className={`pin ${throwState === "hit" ? "pin-hit" : ""} ${throwState === "ready" ? "pin-reset" : ""}`}
+              key={`${cycle}-${i}`}
+              className={`pin ${throwState === "hit" ? "pin-scatter" : ""} ${throwState === "ready" ? "pin-appear" : ""}`}
               style={{
-                left: `calc(50% + ${x}px)`,
-                top: `calc(50% + ${y}px)`,
-                animationDelay: throwState === "hit" ? `${hitDelay}s` : "0s",
+                left: `calc(50% + ${xOff}px)`,
+                top: `calc(50% + ${yOff}px)`,
+                animationDelay: `${delay}s`,
                 // @ts-expect-error CSS custom properties
-                "--hit-angle": `${hitAngle}deg`,
-                "--hit-x": `${hitDistance * (Math.random() > 0.5 ? 1 : -1)}px`,
-                "--hit-y": `${-20 - Math.random() * 40}px`,
+                "--scatter-rot": `${angle}deg`,
+                "--scatter-x": `${dx}px`,
+                "--scatter-y": `${dy}px`,
               }}
             >
-              <svg viewBox="0 0 14 36" className="pin-svg">
-                {/* Pin body */}
-                <ellipse cx="7" cy="32" rx="6" ry="4" fill="#ddd" />
-                <rect x="3" y="18" width="8" height="14" rx="2" fill="#f5f5f5" />
-                <path d="M 4 18 Q 7 12 10 18" fill="#f5f5f5" />
-                <ellipse cx="7" cy="10" rx="5" ry="6" fill="#fff" />
-                {/* Red stripes */}
-                <rect x="3.5" y="15" width="7" height="2" rx="1" fill="#cc0000" />
-                <rect x="4" y="19" width="6" height="1.5" rx="0.5" fill="#cc0000" />
+              <svg viewBox="0 0 16 40" className="pin-svg">
+                <ellipse cx="8" cy="36" rx="7" ry="4" fill="#ccc" />
+                <rect x="3" y="20" width="10" height="16" rx="3" fill="#f0f0f0" />
+                <path d="M 4 20 Q 8 13 12 20" fill="#f0f0f0" />
+                <ellipse cx="8" cy="11" rx="5.5" ry="7" fill="#fff" />
+                <rect x="3.5" y="17" width="9" height="2.5" rx="1" fill="#cc0000" />
+                <rect x="4" y="22" width="8" height="2" rx="1" fill="#cc0000" />
               </svg>
             </div>
           );
         })}
       </div>
 
-      {/* Strike text */}
+      {/* Impact flash */}
+      {throwState === "hit" && <div className="impact-flash" />}
+
+      {/* Result text */}
       {throwState === "hit" && (
-        <div className="strike-text">STRIKE!</div>
+        <div className="result-text strike">STRIKE!</div>
       )}
       {throwState === "miss" && (
-        <div className="miss-text">Gutter Ball!</div>
+        <div className="result-text gutter">Gutter Ball!</div>
       )}
 
-      {/* Title overlay */}
-      <div className="banner-title">
-        <span className="banner-title-text">THE BIG FOLWING</span>
+      {/* Bottom title bar */}
+      <div className="banner-bottom">
+        <span>THE BIG FOLWING</span>
       </div>
 
       <style>{`
         .hero-banner {
           width: 100%;
-          height: 280px;
-          background: linear-gradient(135deg, #0D1B2A 0%, #1B2D45 50%, #0D1B2A 100%);
+          height: 260px;
+          background: #000;
           position: relative;
           overflow: hidden;
           border-bottom: 3px solid #C4A265;
         }
+        @media (min-width: 640px) {
+          .hero-banner { height: 300px; }
+        }
+        @media (min-width: 1024px) {
+          .hero-banner { height: 340px; }
+        }
 
-        /* Subtle grid lines like a sports field */
+        /* Subtle radial glow behind the action */
         .hero-banner::before {
           content: '';
           position: absolute;
-          inset: 0;
-          background:
-            repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(196,162,101,0.03) 80px, rgba(196,162,101,0.03) 81px),
-            repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(196,162,101,0.03) 40px, rgba(196,162,101,0.03) 41px);
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -55%);
+          width: 600px;
+          height: 400px;
+          background: radial-gradient(ellipse, rgba(196,162,101,0.06) 0%, transparent 70%);
+          pointer-events: none;
         }
 
-        /* Ground line */
-        .hero-banner::after {
-          content: '';
+        /* Wolf image */
+        .wolf-container {
           position: absolute;
-          bottom: 50px;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent 5%, rgba(196,162,101,0.15) 20%, rgba(196,162,101,0.25) 50%, rgba(196,162,101,0.15) 80%, transparent 95%);
-        }
-
-        /* Wolf */
-        .wolf {
-          position: absolute;
-          left: 8%;
-          bottom: 50px;
-          width: 100px;
-          height: 100px;
+          left: 3%;
+          bottom: 20px;
           z-index: 10;
-          transition: transform 0.3s ease;
         }
-        .wolf-throw {
-          transform: rotate(-8deg);
+        @media (min-width: 640px) {
+          .wolf-container { left: 6%; bottom: 15px; }
         }
-        .wolf-body {
-          position: relative;
-          width: 100%;
-          height: 100%;
+        @media (min-width: 1024px) {
+          .wolf-container { left: 10%; }
         }
-        .wolf-svg {
-          width: 100%;
-          height: 100%;
-          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+        .wolf-img {
+          width: 150px;
+          height: 150px;
+          object-fit: contain;
+          filter: drop-shadow(0 0 20px rgba(196,162,101,0.2));
+          transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        .wolf-arm {
-          position: absolute;
-          right: -15px;
-          top: 55%;
-          width: 60px;
-          height: 20px;
-          transform-origin: left center;
-          transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        @media (min-width: 640px) {
+          .wolf-img { width: 200px; height: 200px; }
         }
-        .arm-ready {
-          transform: rotate(20deg);
+        @media (min-width: 1024px) {
+          .wolf-img { width: 250px; height: 250px; }
         }
-        .arm-throw {
-          transform: rotate(-60deg);
-        }
-        .arm-svg {
-          width: 100%;
-          height: 100%;
+        .wolf-throwing {
+          transform: rotate(-6deg) scale(1.03);
         }
 
         /* Football */
-        .football {
+        .fb {
           position: absolute;
-          width: 36px;
-          height: 22px;
-          z-index: 8;
+          width: 32px;
+          height: 20px;
+          z-index: 12;
           opacity: 0;
         }
-        .football-svg {
+        @media (min-width: 640px) {
+          .fb { width: 38px; height: 24px; }
+        }
+        .fb-svg {
           width: 100%;
           height: 100%;
-          filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+          filter: drop-shadow(0 3px 8px rgba(0,0,0,0.6));
         }
-        .football-ready {
-          left: 15%;
-          bottom: 110px;
+        .fb-ready {
+          left: 22%;
+          bottom: 55%;
           opacity: 0;
         }
-        .football-fly {
-          animation: football-arc 1.2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
-          opacity: 1;
+        .fb-throwing {
+          animation: fb-arc 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
         }
-        .football-hit {
-          left: 72%;
-          bottom: 95px;
+        .fb-hit {
           opacity: 0;
         }
-        .football-miss {
-          animation: football-miss-arc 1s ease-out forwards;
-          opacity: 1;
+        .fb-miss {
+          animation: fb-miss 1.0s ease-out forwards;
         }
 
-        @keyframes football-arc {
-          0% { left: 18%; bottom: 120px; opacity: 1; transform: rotate(0deg); }
-          30% { left: 40%; bottom: 200px; opacity: 1; transform: rotate(-180deg); }
-          60% { left: 60%; bottom: 160px; opacity: 1; transform: rotate(-360deg); }
-          100% { left: 72%; bottom: 100px; opacity: 1; transform: rotate(-540deg); }
+        @keyframes fb-arc {
+          0%   { left: 22%; bottom: 55%; opacity: 1; transform: rotate(0deg); }
+          25%  { left: 38%; bottom: 75%; opacity: 1; transform: rotate(-150deg); }
+          55%  { left: 55%; bottom: 65%; opacity: 1; transform: rotate(-320deg); }
+          100% { left: 68%; bottom: 48%; opacity: 1; transform: rotate(-540deg); }
         }
 
-        @keyframes football-miss-arc {
-          0% { left: 18%; bottom: 120px; opacity: 1; transform: rotate(0deg); }
-          30% { left: 40%; bottom: 210px; opacity: 1; transform: rotate(-180deg); }
-          70% { left: 65%; bottom: 180px; opacity: 1; transform: rotate(-400deg); }
-          100% { left: 85%; bottom: 20px; opacity: 0.5; transform: rotate(-600deg); }
+        @keyframes fb-miss {
+          0%   { left: 22%; bottom: 55%; opacity: 1; transform: rotate(0deg); }
+          30%  { left: 40%; bottom: 78%; opacity: 1; transform: rotate(-200deg); }
+          100% { left: 88%; bottom: 10%; opacity: 0.3; transform: rotate(-650deg); }
         }
 
         /* Pins */
-        .pins-group {
+        .pins-area {
           position: absolute;
-          right: 15%;
-          bottom: 55px;
-          width: 120px;
-          height: 100px;
-          z-index: 5;
+          right: 12%;
+          bottom: 40px;
+          width: 130px;
+          height: 110px;
+          z-index: 8;
+        }
+        @media (min-width: 640px) {
+          .pins-area { right: 16%; width: 140px; height: 120px; bottom: 45px; }
+        }
+        @media (min-width: 1024px) {
+          .pins-area { right: 20%; width: 150px; height: 130px; }
         }
         .pin {
           position: absolute;
-          width: 14px;
-          height: 36px;
+          width: 16px;
+          height: 40px;
           transform-origin: bottom center;
-          transition: opacity 0.3s ease;
         }
         .pin-svg {
           width: 100%;
           height: 100%;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+          filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
         }
-        .pin-reset {
-          animation: pin-appear 0.4s ease-out forwards;
+        .pin-appear {
+          animation: pin-pop 0.35s ease-out forwards;
         }
-        .pin-hit {
-          animation: pin-fly 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        .pin-scatter {
+          animation: pin-fly 0.55s cubic-bezier(0.15, 0.8, 0.25, 1) forwards;
+        }
+
+        @keyframes pin-pop {
+          0%   { opacity: 0; transform: translateY(-12px) scale(0.8); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         @keyframes pin-fly {
-          0% { transform: rotate(0deg) translate(0, 0); opacity: 1; }
-          40% { opacity: 1; }
-          100% {
-            transform: rotate(var(--hit-angle)) translate(var(--hit-x), var(--hit-y));
-            opacity: 0;
-          }
+          0%   { transform: rotate(0deg) translate(0, 0); opacity: 1; }
+          30%  { opacity: 1; }
+          100% { transform: rotate(var(--scatter-rot)) translate(var(--scatter-x), var(--scatter-y)); opacity: 0; }
         }
 
-        @keyframes pin-appear {
-          0% { opacity: 0; transform: translateY(-10px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Strike / Miss text */
-        .strike-text {
+        /* Impact flash */
+        .impact-flash {
           position: absolute;
-          top: 30%;
+          right: 15%;
+          bottom: 35%;
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(196,162,101,0.4) 0%, transparent 70%);
+          animation: flash-pop 0.4s ease-out forwards;
+          z-index: 7;
+          pointer-events: none;
+        }
+        @keyframes flash-pop {
+          0%   { transform: scale(0); opacity: 1; }
+          50%  { transform: scale(1.5); opacity: 0.8; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+
+        /* Result text */
+        .result-text {
+          position: absolute;
+          top: 22%;
           left: 50%;
-          transform: translate(-50%, -50%) scale(0);
+          z-index: 20;
           font-family: var(--font-playfair);
-          font-size: 48px;
           font-weight: 900;
+          letter-spacing: 3px;
+          animation: text-boom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          pointer-events: none;
+        }
+        .strike {
+          font-size: 36px;
           color: #C4A265;
-          text-shadow: 0 0 30px rgba(196,162,101,0.6), 0 4px 12px rgba(0,0,0,0.5);
-          animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-          z-index: 20;
-          letter-spacing: 4px;
+          text-shadow: 0 0 40px rgba(196,162,101,0.5), 0 0 80px rgba(196,162,101,0.2), 0 4px 12px rgba(0,0,0,0.8);
         }
-        .miss-text {
-          position: absolute;
-          top: 30%;
-          left: 50%;
-          transform: translate(-50%, -50%) scale(0);
-          font-family: var(--font-playfair);
-          font-size: 32px;
-          font-weight: 700;
+        .gutter {
+          font-size: 26px;
+          color: rgba(255,255,255,0.45);
           font-style: italic;
-          color: rgba(255,255,255,0.5);
-          text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-          animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-          z-index: 20;
+          text-shadow: 0 3px 10px rgba(0,0,0,0.7);
+          letter-spacing: 1px;
+        }
+        @media (min-width: 640px) {
+          .strike { font-size: 52px; }
+          .gutter { font-size: 34px; }
+        }
+        @media (min-width: 1024px) {
+          .strike { font-size: 64px; }
+          .gutter { font-size: 40px; }
         }
 
-        @keyframes pop-in {
-          0% { transform: translate(-50%, -50%) scale(0) rotate(-5deg); }
-          60% { transform: translate(-50%, -50%) scale(1.15) rotate(2deg); }
-          100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+        @keyframes text-boom {
+          0%   { transform: translate(-50%, -50%) scale(0) rotate(-8deg); opacity: 0; }
+          50%  { transform: translate(-50%, -50%) scale(1.2) rotate(3deg); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
         }
 
-        /* Title */
-        .banner-title {
+        /* Bottom title */
+        .banner-bottom {
           position: absolute;
-          bottom: 10px;
+          bottom: 8px;
           left: 0;
           right: 0;
           text-align: center;
           z-index: 15;
+          pointer-events: none;
         }
-        .banner-title-text {
+        .banner-bottom span {
           font-family: var(--font-playfair);
-          font-size: 14px;
+          font-size: 11px;
           font-weight: 900;
-          letter-spacing: 8px;
-          color: rgba(196,162,101,0.4);
+          letter-spacing: 10px;
+          color: rgba(196,162,101,0.3);
           text-transform: uppercase;
         }
-
-        @media (min-width: 768px) {
-          .hero-banner {
-            height: 340px;
-          }
-          .wolf {
-            width: 130px;
-            height: 130px;
-            left: 10%;
-          }
-          .pins-group {
-            right: 18%;
-            width: 140px;
-            height: 120px;
-          }
-          .strike-text {
-            font-size: 64px;
-          }
-          .banner-title-text {
-            font-size: 16px;
-            letter-spacing: 12px;
-          }
+        @media (min-width: 640px) {
+          .banner-bottom span { font-size: 14px; letter-spacing: 14px; }
         }
       `}</style>
     </div>
