@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import HeroBanner from "@/components/HeroBanner";
 
 const stats = [
   { value: "0", label: "Competitors in ATX" },
@@ -62,24 +63,19 @@ const revenue = [
 export default function Home() {
   return (
     <div>
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+      {/* Animated Hero Banner */}
+      <HeroBanner />
+
+      {/* Hero Content */}
+      <section className="relative py-16 sm:py-24 bg-dark overflow-hidden">
         <Image
-          src="/fowling-warehouse-lanes.jpg"
-          alt="Fowling lanes"
+          src="/fowling-outdoor-setup.jpg"
+          alt="Outdoor fowling setup"
           fill
-          className="object-cover object-[center_40%]"
+          className="object-cover opacity-20"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-dark/20 via-dark/50 to-dark/95" />
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-          <Image
-            src="/wolf-mascot-scene.png"
-            alt="The Big Folwing Wolf Mascot"
-            width={160}
-            height={160}
-            className="mx-auto mb-6 rounded-2xl animate-float"
-          />
           <p className="text-gold text-xs sm:text-sm tracking-[6px] uppercase font-bold mb-4">
             Woolf Ventures LLC Presents
           </p>
